@@ -1,13 +1,25 @@
 package com.example.objektorientering_inlamning3;
 
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.awt.event.*;
 
 public class HelloController {
 
@@ -19,25 +31,46 @@ public class HelloController {
     int rowSize = 4;
     boolean randomizeInitialEmptySlot = false;
     int maxCells = rowSize*columnSize-1;
-
+    int currentEmptySlot = 15;
     List<Integer> slotsNotTaken = new ArrayList<>();
-
-    //INTERFACE
     @FXML
     public GridPane gameGridPane;
+
+
+    //INTERFACE
+
     @FXML
-    private Label welcomeText;
+    protected void onNewGameButtonClick() {
+        newGame();
+        //shuffleToWinGame();
+        checkGameState();
+    }
 
+    protected boolean verifyIfSlotsSwappable(int slotA, int slotB)
+    {
+        //One slot has to be the empty slot
+        if(slotA != currentEmptySlot && slotB != currentEmptySlot)
+            return false;
 
-    //LAYOUT NEEDED
-    //Button for new game (Center, then have gameboard under) (Shuffles all)
-    //Gameboard = gridbox
-    // test
+        //Logic for verifying moving rows
+        if(Math.abs(slotA - slotB) == columnSize)
+        {
+            return true;
+        }
+        //Logic for verifying moving columns
+        else if(Math.abs(slotA - slotB) == 1 && ((slotA / columnSize) == (slotB / columnSize)))
+        {
+            return true;
+        }
 
-
+        return false;
+    }
 
     protected void newGame()
     {
+        gameGridPane.getChildren().clear();
+        currentEmptySlot = 15;
+
         // Init slotsNotTaken
         for(int i = 0; i < (rowSize); ++i)
         {
@@ -48,7 +81,6 @@ public class HelloController {
                     break;
 
                 slotsNotTaken.add((rowSize*i+j));
-                System.out.println("ADD INDEX: " + (rowSize*i+j));
             }
         }
 
@@ -80,16 +112,13 @@ public class HelloController {
         {
             for(int j = 0; j < (columnSize); ++j)
             {
-                //System.out.println("Text: " + button.getText() + " | Index: " + gameButtons.indexOf(button));
-                //System.out.println("get index: " + (rowSize*i+j)+1);
-                //Button button = gameButtons.get((rowSize*i+j)+1);
-
                 //Last slot has to be empty
                 if((rowSize*i+j) >= (maxCells))
                     break;
 
                 Button button = gameButtons.get((rowSize*i+j));
                 button.setMaxSize(buttonSize, buttonSize);
+                button.setOnAction(actionEvent -> {onGameButtonClick(actionEvent);});
 
                 //Roll slot to place button
                 if(slotsNotTaken.size() <= 1)
@@ -98,7 +127,6 @@ public class HelloController {
                     indexRoll = random.nextInt(slotsNotTaken.size()-1);
 
                 rolledSlot = slotsNotTaken.get(indexRoll);
-                System.out.println("ROLLEDSLOT: " + rolledSlot + " | slotsNotTaken SIZE: " + slotsNotTaken.size());
                 slotsNotTaken.remove(indexRoll);
                 rolledRow = rolledSlot / columnSize;
                 rolledColumn = rolledSlot % columnSize;
@@ -113,13 +141,65 @@ public class HelloController {
             }
         }
 
-        //myButton.setMaxSize(buttonSize, buttonSize);
-        //gameGridPane.add(myButton, 0, 0);
-
     }
 
     @FXML
-    protected void onNewGameButtonClick() {
-        newGame();
+    protected void shuffleToWinGame() {
+        for(Node node : gameGridPane.getChildren())
+        {
+            Button button = (Button)node;
+            int buttonNumber = Integer.parseInt(button.getText()) - 1;
+            int buttonNewColumnIndex = buttonNumber % gameGridPane.getColumnCount();
+            int buttonNewRowIndex = buttonNumber / gameGridPane.getColumnCount();
+
+            gameGridPane.setColumnIndex(button, buttonNewColumnIndex);
+            gameGridPane.setRowIndex(button, buttonNewRowIndex);
+        }
+    }
+    @FXML
+    protected void onGameButtonClick(ActionEvent actionEvent) {
+        Object node = actionEvent.getSource();
+        Button button = (Button)node;
+        if(button == null)
+            return;
+
+        int buttonColumnIndex = gameGridPane.getColumnIndex(button);
+        int buttonRowIndex = gameGridPane.getRowIndex(button);
+        int clickedButtonConvertedSlot = buttonRowIndex * gameGridPane.getColumnCount() + buttonColumnIndex;
+
+        //Swap indices of buttons
+        if(verifyIfSlotsSwappable(clickedButtonConvertedSlot, currentEmptySlot))
+        {
+            gameGridPane.setColumnIndex(button, currentEmptySlot % gameGridPane.getColumnCount());
+            gameGridPane.setRowIndex(button, currentEmptySlot / gameGridPane.getColumnCount());
+
+            currentEmptySlot = clickedButtonConvertedSlot;
+        }
+
+        checkGameState();
+    }
+
+    protected void checkGameState()
+    {
+        gameGridPane.getChildren();
+        for(Node node : gameGridPane.getChildren())
+        {
+            Button button = (Button)node;
+            int buttonColumnIndex = gameGridPane.getColumnIndex(button);
+            int buttonRowIndex = gameGridPane.getRowIndex(button);
+            int clickedButtonConvertedSlot = buttonRowIndex * gameGridPane.getColumnCount() + buttonColumnIndex + 1;
+            if(!button.getText().equals(Integer.toString(clickedButtonConvertedSlot)))
+                return;
+        }
+
+        //You win, open window message
+        Stage stage = new Stage();
+        stage.initModality(Modality.APPLICATION_MODAL); // Prevent clicking main window while this popup exist
+        VBox dialogVbox = new VBox(); // parameter = spacing
+        dialogVbox.getChildren().add(new Text("Congratulations, you win!"));
+        dialogVbox.setAlignment(Pos.CENTER);
+        Scene dialogScene = new Scene(dialogVbox, 300, 100);
+        stage.setScene(dialogScene);
+        stage.show();
     }
 }
