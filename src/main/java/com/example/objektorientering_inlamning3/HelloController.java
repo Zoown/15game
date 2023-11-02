@@ -118,13 +118,13 @@ public class HelloController {
 
                 Button button = gameButtons.get((rowSize*i+j));
                 button.setMaxSize(buttonSize, buttonSize);
-                button.setOnAction(actionEvent -> {onGameButtonClick(actionEvent);});
+                button.setOnAction(this::onGameButtonClick);
 
                 //Roll slot to place button
                 if(slotsNotTaken.size() <= 1)
                     indexRoll = 0;
                 else
-                    indexRoll = random.nextInt(slotsNotTaken.size()-1);
+                    indexRoll = random.nextInt(slotsNotTaken.size());
 
                 rolledSlot = slotsNotTaken.get(indexRoll);
                 slotsNotTaken.remove(indexRoll);
